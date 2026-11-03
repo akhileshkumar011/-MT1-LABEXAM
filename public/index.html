@@ -5,21 +5,295 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Library Book Management</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #f4f6f8; margin: 0; padding: 40px; color: #222; }
-    .card { max-width: 600px; margin: auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,.1); }
-    h1 { margin-top: 0; }
-    a { color: #0b5ed7; }
+    :root {
+      --paper: #f6f1e7;
+      --card: #fffdf8;
+      --ink: #1f2a24;
+      --muted: #6b7467;
+      --line: #e3dbc8;
+      --green: #1f4d3a;
+      --green-soft: #e4efe8;
+      --gold: #b8872b;
+      --danger: #a63d2f;
+      --shadow: 0 1px 2px rgba(31, 42, 36, .06), 0 8px 24px rgba(31, 42, 36, .07);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --paper: #141a17;
+        --card: #1c2420;
+        --ink: #ece7da;
+        --muted: #9aa597;
+        --line: #2c3731;
+        --green: #7fc4a0;
+        --green-soft: #213129;
+        --gold: #d9a94a;
+        --danger: #e07a6a;
+        --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .25);
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.5;
+    }
+    .serif { font-family: Georgia, "Times New Roman", serif; }
+    a { color: var(--green); }
+
+    /* top bar */
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      max-width: 1040px; margin: 0 auto; padding: 18px 20px;
+    }
+    .brand { font-family: Georgia, serif; font-weight: 700; font-size: 1.15rem; letter-spacing: .2px; }
+    .brand span { color: var(--gold); }
+    nav a {
+      text-decoration: none; color: var(--muted); font-size: .9rem;
+      margin-left: 18px; padding-bottom: 2px; border-bottom: 2px solid transparent;
+    }
+    nav a:hover { color: var(--green); border-color: var(--gold); }
+
+    /* hero */
+    .hero {
+      max-width: 1040px; margin: 8px auto 0; padding: 36px 20px 28px;
+    }
+    .eyebrow { text-transform: uppercase; letter-spacing: 2px; font-size: .75rem; color: var(--gold); font-weight: 700; }
+    .hero h1 { font-family: Georgia, serif; font-size: clamp(2rem, 5vw, 3.2rem); line-height: 1.1; margin: 8px 0 12px; }
+    .hero p { color: var(--muted); max-width: 560px; margin: 0; font-size: 1.05rem; }
+
+    main { max-width: 1040px; margin: 0 auto; padding: 0 20px 56px; }
+
+    /* stats */
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 8px 0 34px; }
+    .stat {
+      background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+      padding: 16px 18px; box-shadow: var(--shadow);
+    }
+    .stat b { display: block; font-family: Georgia, serif; font-size: 1.9rem; color: var(--green); }
+    .stat small { color: var(--muted); text-transform: uppercase; letter-spacing: 1px; font-size: .7rem; }
+
+    h2 { font-family: Georgia, serif; font-size: 1.5rem; margin: 0 0 16px; }
+
+    /* books */
+    .shelf { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
+    .book {
+      position: relative; background: var(--card); border: 1px solid var(--line);
+      border-radius: 14px; padding: 18px 18px 16px 26px; box-shadow: var(--shadow);
+      transition: transform .15s ease;
+    }
+    .book:hover { transform: translateY(-3px); }
+    .book::before {
+      content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 10px;
+      border-radius: 14px 0 0 14px; background: var(--spine, var(--green));
+    }
+    .book .id { font-size: .72rem; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+    .book h3 { font-family: Georgia, serif; margin: 4px 0 2px; font-size: 1.15rem; }
+    .book .author { color: var(--muted); font-size: .92rem; margin-bottom: 14px; }
+    .book .row { display: flex; justify-content: space-between; align-items: center; }
+    .price { font-weight: 700; color: var(--green); }
+    .tag { font-size: .72rem; background: var(--green-soft); color: var(--green); padding: 3px 9px; border-radius: 99px; }
+    .empty { color: var(--muted); padding: 24px 0; }
+
+    /* two-column area */
+    .split { display: grid; grid-template-columns: 1.1fr .9fr; gap: 24px; margin-top: 42px; }
+    @media (max-width: 800px) { .split { grid-template-columns: 1fr; } .stats { grid-template-columns: 1fr 1fr 1fr; } }
+    .panel {
+      background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+      padding: 22px; box-shadow: var(--shadow);
+    }
+
+    form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    form .full { grid-column: 1 / -1; }
+    label { display: block; font-size: .78rem; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .8px; }
+    input {
+      width: 100%; padding: 10px 12px; border-radius: 10px; font: inherit;
+      border: 1px solid var(--line); background: var(--paper); color: var(--ink);
+    }
+    input:focus { outline: 2px solid var(--gold); border-color: transparent; }
+    button {
+      grid-column: 1 / -1; padding: 12px; border: 0; border-radius: 10px; cursor: pointer;
+      background: var(--green); color: #fff; font: inherit; font-weight: 600;
+    }
+    @media (prefers-color-scheme: dark) { button { color: #0f1612; } }
+    button:hover { filter: brightness(1.08); }
+    #msg { grid-column: 1 / -1; font-size: .9rem; min-height: 1.3em; }
+    #msg.ok { color: var(--green); }
+    #msg.err { color: var(--danger); }
+
+    /* routes list */
+    .routes { list-style: none; margin: 0; padding: 0; }
+    .routes li { display: flex; gap: 10px; align-items: baseline; padding: 9px 0; border-bottom: 1px dashed var(--line); font-size: .93rem; }
+    .routes li:last-child { border: 0; }
+    .method { font-family: ui-monospace, Menlo, monospace; font-size: .72rem; font-weight: 700; padding: 2px 7px; border-radius: 6px; background: var(--green-soft); color: var(--green); min-width: 46px; text-align: center; }
+    .method.post { background: #f3e4bf; color: #7a5712; }
+    @media (prefers-color-scheme: dark) { .method.post { background: #3a3019; color: var(--gold); } }
+    code { font-family: ui-monospace, Menlo, monospace; }
+    .routes span.d { color: var(--muted); margin-left: auto; text-align: right; font-size: .82rem; }
+
+    footer { text-align: center; color: var(--muted); font-size: .85rem; padding: 0 20px 40px; }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>Library Book Management</h1>
-    <p>This page is served from the <code>public</code> folder using the Node.js <strong>fs</strong> module.</p>
-    <ul>
-      <li><a href="/">Welcome</a></li>
-      <li><a href="/books">All Books (JSON)</a></li>
-      <li><a href="/about">About</a></li>
-    </ul>
+  <div class="topbar">
+    <div class="brand">Library<span>.</span>Desk</div>
+    <nav>
+      <a href="/">Welcome</a>
+      <a href="/books">Books JSON</a>
+      <a href="/about">About</a>
+    </nav>
   </div>
+
+  <header class="hero">
+    <div class="eyebrow">Node.js · HTTP · FS</div>
+    <h1>Library Book Management</h1>
+    <p>A small catalogue served by a plain Node.js HTTP server. This page itself is read from the <code>public</code> folder with the <code>fs</code> module.</p>
+  </header>
+
+  <main>
+    <section class="stats">
+      <div class="stat"><b id="statCount">–</b><small>Books</small></div>
+      <div class="stat"><b id="statAuthors">–</b><small>Authors</small></div>
+      <div class="stat"><b id="statValue">–</b><small>Total value</small></div>
+    </section>
+
+    <h2>On the shelf</h2>
+    <section class="shelf" id="shelf"><div class="empty">Loading books…</div></section>
+
+    <section class="split">
+      <div class="panel">
+        <h2>Add a book</h2>
+        <form id="bookForm">
+          <div>
+            <label for="id">ID</label>
+            <input id="id" name="id" type="number" min="1" required>
+          </div>
+          <div>
+            <label for="price">Price (₹)</label>
+            <input id="price" name="price" type="number" min="0" required>
+          </div>
+          <div class="full">
+            <label for="title">Title</label>
+            <input id="title" name="title" type="text" required>
+          </div>
+          <div class="full">
+            <label for="author">Author</label>
+            <input id="author" name="author" type="text" required>
+          </div>
+          <button type="submit">Add book</button>
+          <div id="msg" role="status"></div>
+        </form>
+      </div>
+
+      <div class="panel">
+        <h2>Server routes</h2>
+        <ul class="routes">
+          <li><span class="method">GET</span><code>/</code><span class="d">Welcome (HTML)</span></li>
+          <li><span class="method">GET</span><code>/books</code><span class="d">All books (JSON)</span></li>
+          <li><span class="method">GET</span><code>/about</code><span class="d">App information</span></li>
+          <li><span class="method">GET</span><code>/home</code><span class="d">This page (fs)</span></li>
+          <li><span class="method post">POST</span><code>/add-book</code><span class="d">Add a book (JSON)</span></li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <footer>MT1 Lab Examination · Full Stack Development</footer>
+
+  <script>
+    const spines = ['#1f4d3a', '#8a3b2e', '#27466b', '#b8872b', '#5b3a6b', '#2f6f6a'];
+    const shelf = document.getElementById('shelf');
+    const msg = document.getElementById('msg');
+
+    function setMsg(text, type) {
+      msg.textContent = text;
+      msg.className = type;
+    }
+
+    function renderBooks(books) {
+      document.getElementById('statCount').textContent = books.length;
+      document.getElementById('statAuthors').textContent = new Set(books.map(b => b.author)).size;
+      const total = books.reduce((sum, b) => sum + Number(b.price || 0), 0);
+      document.getElementById('statValue').textContent = '₹' + total.toLocaleString('en-IN');
+
+      shelf.replaceChildren();
+      if (!books.length) {
+        shelf.innerHTML = '<div class="empty">No books yet. Add the first one below.</div>';
+        return;
+      }
+      books.forEach((b) => {
+        const card = document.createElement('article');
+        card.className = 'book';
+        card.style.setProperty('--spine', spines[b.id % spines.length]);
+
+        const idEl = document.createElement('div');
+        idEl.className = 'id';
+        idEl.textContent = 'Book #' + b.id;
+
+        const title = document.createElement('h3');
+        title.textContent = b.title;
+
+        const author = document.createElement('div');
+        author.className = 'author';
+        author.textContent = 'by ' + b.author;
+
+        const row = document.createElement('div');
+        row.className = 'row';
+        const price = document.createElement('span');
+        price.className = 'price';
+        price.textContent = '₹' + Number(b.price).toLocaleString('en-IN');
+        row.appendChild(price);
+        if (b.category) {
+          const tag = document.createElement('span');
+          tag.className = 'tag';
+          tag.textContent = b.category;
+          row.appendChild(tag);
+        }
+
+        card.append(idEl, title, author, row);
+        shelf.appendChild(card);
+      });
+    }
+
+    async function loadBooks() {
+      try {
+        const res = await fetch('/books');
+        renderBooks(await res.json());
+      } catch {
+        shelf.innerHTML = '<div class="empty">Could not load books from /books.</div>';
+      }
+    }
+
+    document.getElementById('bookForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const f = e.target;
+      const payload = {
+        id: Number(f.id.value),
+        title: f.title.value.trim(),
+        author: f.author.value.trim(),
+        price: Number(f.price.value),
+      };
+      try {
+        const res = await fetch('/add-book', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setMsg(data.message, 'ok');
+          f.reset();
+          loadBooks();
+        } else {
+          setMsg(data.error || 'Something went wrong', 'err');
+        }
+      } catch {
+        setMsg('Could not reach the server', 'err');
+      }
+    });
+
+    loadBooks();
+  </script>
 </body>
 </html>
